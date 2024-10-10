@@ -9,12 +9,12 @@ boost::system::error_code err;
 /********************************************************
             串口发送控制命令
 ********************************************************/
-const unsigned char header[7] = {0x03, 0x31, 0x00, 0x30, 0x04, 0x7B, 0x3F};
+const unsigned char header[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0X02, 0xC4, 0x0B};
 
 bool radiation::radiation_init()//初始化函数
 {
     //串口参数初始化
-    sp.set_option(serial_port::baud_rate(9600));
+    sp.set_option(serial_port::baud_rate(19200));
     sp.set_option(serial_port::flow_control(serial_port::flow_control::none));
     sp.set_option(serial_port::parity(serial_port::parity::none));
     sp.set_option(serial_port::stop_bits(serial_port::stop_bits::one));
@@ -32,7 +32,7 @@ uint16_t radiation::getCrc16(unsigned char *ptr)
 {
     uint16_t CRCV = 0xFFFF;
     unsigned char iB, i, j;
-    for(i = 0;i < 9; i++)
+    for(i = 0;i < 7; i++)
     {
         CRCV ^= *ptr++;
         for(j = 0; j < 8 ;j++)
@@ -54,10 +54,10 @@ uint16_t radiation::getCrc16(unsigned char *ptr)
 ********************************************************/
 void radiation::writeContral()
 {
-    static unsigned char buf[7] = {0}; //
+    static unsigned char buf[8] = {0}; //
 
     // 控制消息
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 8; i++)
     {
         buf[i] = header[i];
         //ROS_INFO("%02x",buf[i]); 
@@ -86,10 +86,10 @@ bool radiation::readradiation()
     try
     {
         boost::asio::streambuf response;
-        //ROS_INFO("ready to read");
+        // ROS_INFO("ready to read");
         // boost::asio::read_until(sp, response, "\r\n", err);//\r\n
-        boost::asio::read( sp, boost::asio::buffer( buf , 11 ) );
-        ROS_INFO("read successful");
+        boost::asio::read( sp, boost::asio::buffer( buf , 9 ) );
+        // ROS_INFO("read successful");
         
         // copy(istream_iterator<unsigned char>(istream(&response) >> noskipws),
         //      istream_iterator<unsigned char>(),
@@ -110,28 +110,37 @@ bool radiation::readradiation()
         ROS_ERROR("Received message header error!");
         return false;
     }
-    //ROS_INFO("CRC校验");
+    // ROS_INFO("CRC校验");
     // 检查信息校验值
     check = getCrc16(buf); //getCrc16计算得出
-    //ROS_INFO("%02X",check);
+    // ROS_INFO("%02X",check);
     low_byte = (check >> 0)& 0x00ff ;
     //ROS_INFO("%02X",low_byte);
     high_byte = (check >> 8)& 0x00ff ;
     //ROS_INFO("%02X",high_byte);
-    if (low_byte != buf[9] || high_byte != buf[10])     //接受的低字节放在高位，高字节放在底位
+    if (low_byte != buf[7] || high_byte != buf[8])     //接受的低字节放在高位，高字节放在底位
     {
         ROS_ERROR("Received data check sum error!");
         return false;
     }
-    ROS_INFO("CRC校验成功！");
+    // ROS_INFO("CRC校验成功！");
 
     //ROS_INFO("开始计算辐射值！");
     // 读取辐射值   -----------
-    receive_data = (buf[5] << 24) + (buf[6] << 16) + (buf[7] << 8) + (buf[8]);
+    btf.bytes[0] = buf[6]; // 这些值只是示例
+    btf.bytes[1] = buf[5];
+    btf.bytes[2] = buf[4];
+    btf.bytes[3] = buf[3];
+    // btf.bytes[0] = 0xCD; // 0.20uS/v
+    // btf.bytes[1] = 0xCC;
+    // btf.bytes[2] = 0x4C;
+    // btf.bytes[3] = 0x3E;
+    // receive_data = (buf[5] << 24) + (buf[6] << 16) + (buf[7] << 8) + (buf[8]);
+    receive_data = btf.f;
     //ROS_INFO("%d",receive_data);
     final_data.header.stamp = ros::Time::now();
-    final_data.point.x = double(receive_data / 100.0);
-    ROS_INFO("辐射值%f",final_data.point.x);
+    final_data.point.x = btf.f;
+    ROS_INFO("辐射值%f",btf.f);
     
     // 辐射数据发布
     pub_.publish(final_data);

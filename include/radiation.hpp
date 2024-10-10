@@ -7,7 +7,10 @@
 #include <boost/asio.hpp>
 #include <geometry_msgs/PointStamped.h>
 #include <std_msgs/Float64.h>
-
+union BytesToFloat {
+    float f;
+    unsigned char bytes[4];
+};
 class radiation
 {
     private:
@@ -15,6 +18,7 @@ class radiation
         ros::Publisher pub_;
         //std_msgs::Float64 final_data;
         geometry_msgs::PointStamped final_data;
+        union BytesToFloat btf;
     public:
         radiation(){}//构造函数
         virtual ~radiation(){}//虚析构函数
