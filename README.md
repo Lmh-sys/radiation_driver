@@ -2,11 +2,12 @@
 Driving package of WNB-8301G nuclear radiation detector based on ROS 
 * 遇到的问题：
     - 硬件安装，需要小心安装
-    - PL2303驱动未安装
+    - UT-890A驱动未安装
     ```
     # 驱动文件地址
-    https://www.lulian.cn/download/16-cn.html
+    https://www.szutek.com/pro_view-79.html
     ```
+    ![UT-890A驱动](pic/UT-890A驱动.png)
     - 驱动设置开机自启
     ```
     cd /etc/modules-load.d/
@@ -20,6 +21,7 @@ Driving package of WNB-8301G nuclear radiation detector based on ROS
     rosrun radiation_driver radaation_driver
     https://blog.csdn.net/xx970829/article/details/115678890
     https://blog.csdn.net/m0_38144614/article/details/116614056
+
 
 * 成功读取辐射数据
 ```
